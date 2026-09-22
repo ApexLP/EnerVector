@@ -146,7 +146,7 @@ struct SiteDetailView: View {
                 Button { sheet = .nameplate } label: { Label("Capture", systemImage: "plus") }.font(.subheadline)
             }
             if site.equipment.isEmpty {
-                Text("Scan a nameplate to add equipment. FieldSight reads the manufacturer, model, serial and ratings, and checks for an arc flash label.")
+                Text("Scan a nameplate to add equipment. EnerVector reads the manufacturer, model, serial and ratings, and checks for an arc flash label.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             ForEach(sortedEquipment) { item in

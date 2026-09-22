@@ -29,7 +29,7 @@ enum PDFReportBuilder {
         format.documentInfo = [
             kCGPDFContextTitle as String: options.title,
             kCGPDFContextAuthor as String: author.company.isEmpty ? author.technician : author.company,
-            kCGPDFContextCreator as String: "FieldSight",
+            kCGPDFContextCreator as String: "EnerVector",
         ]
         return UIGraphicsPDFRenderer(bounds: page, format: format).pdfData { ctx in
             let doc = Layout(ctx: ctx, page: page, footer: "\(site.name) · \(options.title)")
@@ -166,7 +166,7 @@ enum PDFReportBuilder {
 
     private static func cover(_ doc: Layout, site: Site, options: ReportOptions, author: ReportAuthor) {
         let accent = UIColor(red: 0.12, green: 0.43, blue: 0.92, alpha: 1)
-        doc.text("FIELDSIGHT REPORT", font: .systemFont(ofSize: 10, weight: .bold), color: accent, spacing: 4)
+        doc.text("ENERVECTOR REPORT", font: .systemFont(ofSize: 10, weight: .bold), color: accent, spacing: 4)
         doc.text(options.title, font: .systemFont(ofSize: 24, weight: .bold), spacing: 4)
         doc.text([site.name, site.address].filter { !$0.isEmpty }.joined(separator: " · "), font: .systemFont(ofSize: 13), color: .darkGray, spacing: 14)
         doc.keyValues([("Discipline", site.discipline.rawValue),

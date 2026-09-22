@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct FieldSightApp: App {
+struct EnerVectorApp: App {
     let container: ModelContainer = {
         let schema = Schema([Site.self, Equipment.self, ComplianceFlag.self, RoomScan.self, RunSegment.self, RoofSurvey.self])
         do {

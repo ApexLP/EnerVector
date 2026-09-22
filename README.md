@@ -1,4 +1,4 @@
-# FieldSight
+# EnerVector
 
 A computer vision field app for iPhone and iPad, built for electrical contractors, data center construction, commercial energy audits and solar site surveys. Native SwiftUI, iOS 18+. Everything runs on-device.
 
@@ -20,7 +20,7 @@ iPad gets a sidebar (`TabView` `.sidebarAdaptable`); iPhone gets a tab bar.
 ## Running it
 
 ```bash
-open FieldSight.xcodeproj
+open EnerVector.xcodeproj
 ```
 
 Pick an iPhone/iPad and run. Set your signing team under *Signing & Capabilities* before running on a device.
@@ -35,7 +35,7 @@ See [DEPLOY.md](DEPLOY.md) for TestFlight.
 ## Layout
 
 ```
-FieldSight/
+EnerVector/
   App/        App entry, tab/sidebar root, navigation destinations
   Models/     SwiftData models, geometry, units, sample data
   Vision/     OCR (Vision), nameplate / arc flash / panel schedule parsers

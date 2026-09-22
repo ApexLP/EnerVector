@@ -1,8 +1,8 @@
-# Shipping FieldSight to TestFlight
+# Shipping EnerVector to TestFlight
 
 Already configured in the project:
 
-- Team `Y9WQTJV82S`, automatic signing, bundle ID `com.apexleadpros.fieldsight`
+- Team `Y9WQTJV82S`, automatic signing, bundle ID `com.apexleadpros.enervector`
 - `ITSAppUsesNonExemptEncryption = NO` — export compliance is pre-answered
 - `PrivacyInfo.xcprivacy` (UserDefaults, reason CA92.1; no tracking, no data collected)
 - Camera / photo library usage strings, 1024 px app icon (no alpha)
@@ -15,14 +15,14 @@ Already configured in the project:
 | Field | Value |
 |---|---|
 | Platforms | iOS |
-| Name | FieldSight (must be unique on the App Store; try "FieldSight Pro" etc. if taken) |
+| Name | EnerVector (must be unique on the App Store; try "EnerVector Pro" etc. if taken) |
 | Primary language | English (U.S.) |
-| Bundle ID | `com.apexleadpros.fieldsight` |
-| SKU | `fieldsight` |
+| Bundle ID | `com.apexleadpros.enervector` |
+| SKU | `enervector` |
 | User access | Full Access |
 
 If the bundle ID isn't in the dropdown, register it at
-[developer.apple.com › Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → App IDs → App → explicit ID `com.apexleadpros.fieldsight`.
+[developer.apple.com › Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → App IDs → App → explicit ID `com.apexleadpros.enervector`.
 
 ## 2. Build and upload (every release)
 
@@ -44,12 +44,12 @@ export ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 scripts/testflight.sh
 ```
 
-Build products go to `$TMPDIR/fieldsight-release`, outside the iCloud-synced Documents
+Build products go to `$TMPDIR/enervector-release`, outside the iCloud-synced Documents
 folder, whose file attributes make `codesign` fail.
 
 ## 3. TestFlight
 
-The build shows *Processing* in **App Store Connect › FieldSight › TestFlight** for ~5–15 min.
+The build shows *Processing* in **App Store Connect › EnerVector › TestFlight** for ~5–15 min.
 
 - **Internal testers (no review, up to 100):** Users and Access → invite their Apple ID →
   TestFlight → Internal Testing → add them. They install via the TestFlight app.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Archive FieldSight and upload it to App Store Connect / TestFlight.
+# Archive EnerVector and upload it to App Store Connect / TestFlight.
 #
 # Auth — either:
 #   a) Sign in to Xcode › Settings › Accounts with the Apple ID on team Y9WQTJV82S, or
@@ -16,8 +16,8 @@ cd "$(dirname "$0")/.."
 BUILD_NUMBER="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
 # Keep build products out of the iCloud-synced Documents folder — codesign rejects
 # the extended attributes iCloud adds.
-WORK="${TMPDIR:-/tmp}/fieldsight-release"
-ARCHIVE="$WORK/FieldSight.xcarchive"
+WORK="${TMPDIR:-/tmp}/enervector-release"
+ARCHIVE="$WORK/EnerVector.xcarchive"
 rm -rf "$WORK" && mkdir -p "$WORK"
 
 AUTH=()
@@ -25,10 +25,10 @@ if [[ -n "${ASC_KEY_PATH:-}" ]]; then
   AUTH=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 fi
 
-echo "▸ Archiving FieldSight (build $BUILD_NUMBER)…"
+echo "▸ Archiving EnerVector (build $BUILD_NUMBER)…"
 xcodebuild archive \
-  -project FieldSight.xcodeproj \
-  -scheme FieldSight \
+  -project EnerVector.xcodeproj \
+  -scheme EnerVector \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \

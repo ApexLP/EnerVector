@@ -40,7 +40,7 @@ struct RoomScanFlowView: View {
                         .buttonStyle(.borderedProminent).controlSize(.large).listRowBackground(Color.clear)
                         if processing { ProgressView("Building floor plan…") }
                     } footer: {
-                        Text("Walk the room slowly, pointing at each wall, floor and ceiling edge. RoomPlan captures walls, doors, windows and large objects, then FieldSight draws a dimensioned as-built plan.")
+                        Text("Walk the room slowly, pointing at each wall, floor and ceiling edge. RoomPlan captures walls, doors, windows and large objects, then EnerVector draws a dimensioned as-built plan.")
                     }
                 } else {
                     Section {

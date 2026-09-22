@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 import simd
 
-/// Result of a LiDAR room scan, flattened to what FieldSight stores.
+/// Result of a LiDAR room scan, flattened to what EnerVector stores.
 struct RoomScanResult {
     var geometry: RoomGeometry
     var floorAreaSqFt: Double

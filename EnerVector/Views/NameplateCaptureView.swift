@@ -62,7 +62,7 @@ struct NameplateCaptureView: View {
             VStack(spacing: 20) {
                 Image(systemName: "text.viewfinder").font(.system(size: 56)).foregroundStyle(Color.accentColor).padding(.top, 30)
                 Text("Photograph the equipment nameplate").font(.title3.bold())
-                Text("Fill the frame with the plate and avoid glare. FieldSight reads manufacturer, model, serial, voltage, amperage, kVA, tonnage and refrigerant on-device — nothing is uploaded. If the arc flash label is in the shot, it's checked too.")
+                Text("Fill the frame with the plate and avoid glare. EnerVector reads manufacturer, model, serial, voltage, amperage, kVA, tonnage and refrigerant on-device — nothing is uploaded. If the arc flash label is in the shot, it's checked too.")
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 ImageSourceButtons(scanLabel: "Scan Nameplate") { process($0) }
                     .frame(maxWidth: 420)

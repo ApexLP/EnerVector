@@ -54,7 +54,7 @@ struct CapturesView: View {
             }
         }
         .task(id: filtered.count) {
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("FieldSight Equipment.csv")
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("EnerVector Equipment.csv")
             if (try? CSVExporter.equipment(filtered).write(to: url, atomically: true, encoding: .utf8)) != nil { csvURL = url }
         }
     }
