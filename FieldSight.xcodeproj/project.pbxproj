@@ -170,9 +170,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y9WQTJV82S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FieldSight;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FieldSight uses the camera to read equipment nameplates, panel schedules and arc flash labels, and to scan rooms and roofs with LiDAR.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FieldSight lets you import photos of nameplates and labels for text recognition.";
@@ -201,9 +203,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y9WQTJV82S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FieldSight;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FieldSight uses the camera to read equipment nameplates, panel schedules and arc flash labels, and to scan rooms and roofs with LiDAR.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FieldSight lets you import photos of nameplates and labels for text recognition.";

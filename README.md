@@ -28,6 +28,8 @@ Pick an iPhone/iPad and run. Set your signing team under *Signing & Capabilities
 - **Simulator:** no camera, LiDAR or ARKit — the app shows manual-entry fallbacks and you can import photos from the library for OCR. Sample sites load on first launch (Settings → Remove sample data).
 - **Device:** LiDAR room scans need an iPhone Pro / iPad Pro. Document scanning and OCR work on any supported iPhone/iPad.
 
+See [DEPLOY.md](DEPLOY.md) for TestFlight.
+
 > The project lives inside an iCloud-synced `Documents` folder. If a command-line `xcodebuild` fails at CodeSign with "resource fork, Finder information, or similar detritus not allowed", build with a `-derivedDataPath` outside `Documents` (Xcode's default `~/Library/Developer/Xcode/DerivedData` is fine).
 
 ## Layout
