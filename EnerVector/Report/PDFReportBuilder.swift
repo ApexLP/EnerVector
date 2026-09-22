@@ -165,7 +165,8 @@ enum PDFReportBuilder {
     }
 
     private static func cover(_ doc: Layout, site: Site, options: ReportOptions, author: ReportAuthor) {
-        let accent = UIColor(red: 0.12, green: 0.43, blue: 0.92, alpha: 1)
+        let accent = UIColor(red: 0.18, green: 0.37, blue: 0.66, alpha: 1)
+        UIImage(named: "LogoMark")?.draw(in: CGRect(x: doc.page.width - doc.margin - 46, y: doc.margin - 4, width: 46, height: 46))
         doc.text("ENERVECTOR REPORT", font: .systemFont(ofSize: 10, weight: .bold), color: accent, spacing: 4)
         doc.text(options.title, font: .systemFont(ofSize: 24, weight: .bold), spacing: 4)
         doc.text([site.name, site.address].filter { !$0.isEmpty }.joined(separator: " · "), font: .systemFont(ofSize: 13), color: .darkGray, spacing: 14)
