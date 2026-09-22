@@ -54,7 +54,7 @@ enum NameplateParser {
     ]
 
     static func parse(_ lines: [OCRLine]) -> NameplateResult {
-        let textLines = lines.map { $0.text.latinized.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let textLines = lines.map { normalizeRatings($0.text.latinized).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         let full = textLines.joined(separator: "\n")
         let upper = full.uppercased()
         var r = NameplateResult()
@@ -115,6 +115,11 @@ enum NameplateParser {
         r.kind = guessKind(upper: upper, result: r)
         r.arcFlash = ArcFlashDetector.analyze(full)
         return r
+    }
+
+    /// OCR often reads the slash in "480Y/277V" as "|", "\\", "I" or "l"; put it back.
+    static func normalizeRatings(_ text: String) -> String {
+        text.replacingOccurrences(of: #"(\d{3}Y?)\s*[|\\Il]\s*(\d{3})(?=\s*V|\b)"#, with: "$1/$2", options: .regularExpression)
     }
 
     static func guessKind(upper: String, result r: NameplateResult) -> EquipmentKind {
