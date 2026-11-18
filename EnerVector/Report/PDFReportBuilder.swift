@@ -174,12 +174,26 @@ enum PDFReportBuilder {
                        ("Prepared for", options.preparedFor.isEmpty ? site.client : options.preparedFor),
                        ("Prepared by", [author.technician, author.company].filter { !$0.isEmpty }.joined(separator: ", ")),
                        ("Date", Date.now.formatted(date: .long, time: .omitted))])
-        doc.statRow([
-            ("\(site.equipment.count)", "Equipment captured"),
-            ("\(site.openFlags.count)", "Open flags"),
-            ("\(site.roomScans.count)", "Room scans"),
-            (Units.percent(site.progress), "Complete"),
-        ])
+        if site.isCancelled {
+            doc.section("Project Cancelled · Stranded Assets")
+            let when = site.cancelledAt?.formatted(date: .long, time: .omitted) ?? ""
+            doc.text([site.cancelReason?.rawValue, when.isEmpty ? nil : "Cancelled \(when)"].compactMap { $0 }.joined(separator: " · "),
+                     font: .systemFont(ofSize: 10.5, weight: .semibold), spacing: 4)
+            if !site.cancelNotes.isEmpty { doc.text(site.cancelNotes, font: .systemFont(ofSize: 10.5), spacing: 8) }
+            doc.statRow([
+                ("\(site.strandedEquipment.count)", "Stranded equipment"),
+                (site.strandedKVA > 0 ? Units.number(site.strandedKVA) : "—", "kVA stranded"),
+                (site.installedFeet > 0 ? Units.number(site.installedFeet) : "—", "Ft installed"),
+                ("\(site.openFlags.count)", "Open flags"),
+            ])
+        } else {
+            doc.statRow([
+                ("\(site.equipment.count)", "Equipment captured"),
+                ("\(site.openFlags.count)", "Open flags"),
+                ("\(site.roomScans.count)", "Room scans"),
+                (Units.percent(site.progress), "Complete"),
+            ])
+        }
         if !options.summary.isEmpty {
             doc.section("Summary")
             doc.text(options.summary, font: .systemFont(ofSize: 10.5), spacing: 8)

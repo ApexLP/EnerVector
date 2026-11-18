@@ -126,6 +126,26 @@ enum FlagSeverity: String, CaseIterable, Codable {
     }
 }
 
+enum CancelReason: String, CaseIterable, Identifiable, Codable {
+    case noInterconnection = "No grid interconnection / capacity"
+    case energizationDelay = "Power not available by energization date"
+    case permitting = "Permitting / zoning"
+    case demand = "Financing / demand pulled"
+    case other = "Other"
+
+    var id: String { rawValue }
+
+    var short: String {
+        switch self {
+        case .noInterconnection: "No interconnection"
+        case .energizationDelay: "Power delay"
+        case .permitting: "Permitting"
+        case .demand: "Financing / demand"
+        case .other: "Other"
+        }
+    }
+}
+
 enum RunType: String, CaseIterable, Identifiable, Codable {
     case conduit = "Conduit"
     case cableTray = "Cable Tray"
@@ -157,6 +177,10 @@ final class Site {
     var buildingSqFtOverride: Double?
     var notes: String
     var isSample = false
+    /// Set when the project is cancelled; its captures stay as a record of stranded assets.
+    var cancelledAt: Date?
+    var cancelReasonRaw: String?
+    var cancelNotes: String = ""
     @Attribute(.externalStorage) var coverPhoto: Data?
 
     @Relationship(deleteRule: .cascade, inverse: \Equipment.site) var equipment: [Equipment] = []
@@ -201,6 +225,19 @@ final class Site {
     }
 
     var captureCount: Int { equipment.count + roomScans.count + roofSurveys.count }
+
+    var isCancelled: Bool { cancelledAt != nil }
+
+    var cancelReason: CancelReason? {
+        get { cancelReasonRaw.flatMap(CancelReason.init(rawValue:)) }
+        set { cancelReasonRaw = newValue?.rawValue }
+    }
+
+    /// Distribution and generation gear left behind by a cancelled project (HVAC is excluded).
+    var strandedEquipment: [Equipment] { equipment.filter { !$0.kind.isHVAC } }
+
+    /// Sum of the kVA ratings that could be read from the stranded equipment.
+    var strandedKVA: Double { strandedEquipment.compactMap(\.kvaValue).reduce(0, +) }
 }
 
 @Model
@@ -284,6 +321,12 @@ final class Equipment {
 
     var tons: Double? {
         Double(tonnage.lowercased().replacingOccurrences(of: "tons", with: "").replacingOccurrences(of: "ton", with: "")
+            .trimmingCharacters(in: .whitespaces))
+    }
+
+    /// "1250 kVA" → 1250
+    var kvaValue: Double? {
+        Double(kva.lowercased().replacingOccurrences(of: "kva", with: "").replacingOccurrences(of: ",", with: "")
             .trimmingCharacters(in: .whitespaces))
     }
 }

@@ -18,9 +18,12 @@ struct DashboardView: View {
         return first.map { "\(part), \($0)" } ?? part
     }
 
+    private var active: [Site] { sites.filter { !$0.isCancelled } }
+    private var cancelled: [Site] { sites.filter(\.isCancelled) }
+
     private var avgComplete: Double {
-        guard !sites.isEmpty else { return 0 }
-        return sites.map(\.progress).reduce(0, +) / Double(sites.count)
+        guard !active.isEmpty else { return 0 }
+        return active.map(\.progress).reduce(0, +) / Double(active.count)
     }
 
     var body: some View {
@@ -39,7 +42,7 @@ struct DashboardView: View {
                 }
 
                 LazyVGrid(columns: ResponsiveColumns.make(sizeClass), spacing: 12) {
-                    StatTile(value: "\(sites.count)", label: "Active Sites", symbol: "building.2.fill")
+                    StatTile(value: "\(active.count)", label: "Active Sites", symbol: "building.2.fill")
                     StatTile(value: "\(flags.filter { !$0.resolved }.count)", label: "Open Flags", symbol: "flag.fill", color: .red)
                     StatTile(value: "\(equipment.count + scans.count + roofs.count)", label: "Captures", symbol: "camera.fill", color: .indigo)
                     StatTile(value: Units.percent(avgComplete), label: "Avg Complete", symbol: "chart.bar.fill", color: .green)
@@ -55,6 +58,8 @@ struct DashboardView: View {
                         activity
                     }
                 }
+
+                if !cancelled.isEmpty { strandedSection }
             }
             .padding()
         }
@@ -81,11 +86,41 @@ struct DashboardView: View {
                 }
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 14)], spacing: 14) {
-                    ForEach(sites) { site in
+                    ForEach(active) { site in
                         NavigationLink(value: site) { SiteCard(site: site) }
                             .buttonStyle(.plain)
                     }
                 }
+            }
+        }
+    }
+
+    private var strandedSection: some View {
+        Card {
+            CardHeader("Cancelled · Stranded Assets")
+            let gear = cancelled.reduce(0) { $0 + $1.strandedEquipment.count }
+            let kva = cancelled.reduce(0) { $0 + $1.strandedKVA }
+            Text("\(cancelled.count) cancelled \(cancelled.count == 1 ? "project" : "projects") · \(gear) pieces of stranded equipment"
+                 + (kva > 0 ? " · \(Units.number(kva)) kVA" : ""))
+                .font(.subheadline).foregroundStyle(.secondary)
+            ForEach(cancelled) { site in
+                NavigationLink(value: site) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "xmark.octagon.fill")
+                            .foregroundStyle(.gray)
+                            .frame(width: 30, height: 30)
+                            .background(Color.gray.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(site.name).font(.subheadline.weight(.medium)).foregroundStyle(.primary)
+                            Text([site.cancelReason?.short, site.address.isEmpty ? nil : site.address].compactMap { $0 }.joined(separator: " · "))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text("\(site.strandedEquipment.count) stranded").font(.caption).foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
     }

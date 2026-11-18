@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 enum SiteSheet: String, Identifiable {
-    case nameplate, roomScan, newRoof, report, edit, addFlag, runs
+    case nameplate, roomScan, newRoof, report, edit, addFlag, runs, cancel
     var id: String { rawValue }
 }
 
@@ -20,6 +20,7 @@ struct SiteDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+                if site.isCancelled { strandedCard }
                 captureActions
                 if !site.openFlags.isEmpty { flagsCard }
                 equipmentCard
@@ -44,6 +45,11 @@ struct SiteDetailView: View {
                 Menu {
                     Button { sheet = .edit } label: { Label("Edit Site", systemImage: "pencil") }
                     Button { sheet = .addFlag } label: { Label("Add Flag", systemImage: "flag") }
+                    if site.isCancelled {
+                        Button { reactivate() } label: { Label("Reactivate Project", systemImage: "arrow.uturn.backward.circle") }
+                    } else {
+                        Button { sheet = .cancel } label: { Label("Mark as Cancelled", systemImage: "xmark.octagon") }
+                    }
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Delete Site", systemImage: "trash") }
                 } label: { Label("More", systemImage: "ellipsis.circle") }
             }
@@ -63,12 +69,45 @@ struct SiteDetailView: View {
             case .report: NavigationStack { ReportComposerView(site: site) }.presentationSizing(.page)
             case .edit: SiteEditorView(site: site)
             case .addFlag: FlagEditorView(site: site)
+            case .cancel: CancelProjectView(site: site)
             case .runs: NavigationStack { RunProgressView(site: site).toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { self.sheet = nil } } } }
             }
         }
     }
 
+    private func reactivate() {
+        site.cancelledAt = nil
+        site.cancelReason = nil
+        try? context.save()
+    }
+
     // MARK: Sections
+
+    private var strandedCard: some View {
+        Card {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "xmark.octagon.fill").font(.title2).foregroundStyle(.gray)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Cancelled · Stranded Assets").font(.headline)
+                    Text([site.cancelReason?.rawValue, site.cancelledAt.map { "Cancelled \($0.formatted(date: .abbreviated, time: .omitted))" }]
+                        .compactMap { $0 }.joined(separator: " · "))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    if !site.cancelNotes.isEmpty {
+                        Text(site.cancelNotes).font(.subheadline)
+                    }
+                }
+                Spacer()
+                Button("Edit") { sheet = .cancel }.font(.subheadline)
+            }
+            HStack(spacing: 0) {
+                stat("\(site.strandedEquipment.count)", "Stranded")
+                stat(site.strandedKVA > 0 ? Units.number(site.strandedKVA) : "—", "kVA")
+                stat(site.installedFeet > 0 ? Units.number(site.installedFeet) : "—", "Ft installed")
+            }
+            Text("Everything captured here stays on record so stranded gear can be valued, resold or redeployed.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
 
     private var header: some View {
         Card {
@@ -84,9 +123,13 @@ struct SiteDetailView: View {
                     if !site.client.isEmpty { Text(site.client).font(.subheadline).foregroundStyle(.secondary) }
                 }
                 Spacer()
-                ProgressRing(value: site.progress, color: site.discipline.color, lineWidth: 7, label: "")
-                    .frame(width: 64, height: 64)
-                    .font(.caption)
+                if site.isCancelled {
+                    Badge(text: "Cancelled", color: .gray, symbol: "xmark.octagon.fill")
+                } else {
+                    ProgressRing(value: site.progress, color: site.discipline.color, lineWidth: 7, label: "")
+                        .frame(width: 64, height: 64)
+                        .font(.caption)
+                }
             }
             HStack(spacing: 0) {
                 stat("\(site.equipment.count)", "Equipment")
@@ -383,5 +426,51 @@ struct LoadEstimate {
         tons = site.equipment.compactMap(\.tons).reduce(0, +)
         hvacKW = tons * kwPerTon
         densityKW = site.buildingSqFt * wattsPerSqFt / 1000
+    }
+}
+
+struct CancelProjectView: View {
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var site: Site
+    @State private var reason: CancelReason = .noInterconnection
+    @State private var date = Date.now
+    @State private var notes = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Reason", selection: $reason) {
+                        ForEach(CancelReason.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    DatePicker("Cancelled on", selection: $date, displayedComponents: .date)
+                } footer: {
+                    Text("The site moves to Cancelled · Stranded Assets. Its equipment, scans and runs are kept as a record of what was bought or installed.")
+                }
+                Section("Notes") {
+                    TextField("Utility response, MW requested, equipment on order…", text: $notes, axis: .vertical).lineLimit(3...8)
+                }
+            }
+            .navigationTitle(site.isCancelled ? "Cancellation" : "Cancel Project")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save) }
+            }
+            .onAppear {
+                reason = site.cancelReason ?? .noInterconnection
+                date = site.cancelledAt ?? .now
+                notes = site.cancelNotes
+            }
+        }
+    }
+
+    private func save() {
+        site.cancelReason = reason
+        site.cancelledAt = date
+        site.cancelNotes = notes
+        try? context.save()
+        dismiss()
     }
 }

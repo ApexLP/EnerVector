@@ -142,6 +142,28 @@ enum SampleData {
                                    severity: .warning, equipmentTag: "LP-1", reference: "NEC 408.7", createdAt: ago(hours: 24))
         context.insert(flag2); flag2.site = gng
 
+        // 6. Cancelled project with stranded gear
+        let culpeper = Site(name: "Culpeper DC2", client: "Northstar Data", address: "Culpeper, VA",
+                            discipline: .dataCenter, createdAt: ago(hours: 900))
+        context.insert(culpeper)
+        culpeper.isSample = true
+        culpeper.cancelledAt = ago(hours: 72)
+        culpeper.cancelReason = .noInterconnection
+        culpeper.cancelNotes = "Utility could not commit 60 MW before 2029. Switchgear and transformers delivered and set; feeders not pulled."
+        let stranded: [(String, EquipmentKind, String, String, String, String, String)] = [
+            ("SWGR-A", .switchboard, "Eaton", "Magnum DS", "4000A", "480Y/277V", ""),
+            ("TX-A1", .transformer, "Eaton", "DT-3", "", "13.2kV / 480Y/277V", "2500 kVA"),
+            ("TX-A2", .transformer, "Eaton", "DT-3", "", "13.2kV / 480Y/277V", "2500 kVA"),
+            ("UPS-A", .ups, "Vertiv", "Liebert EXL S1", "", "480V", "1200 kVA"),
+            ("GEN-A", .generator, "Caterpillar", "3516C", "", "480V", "2500 kVA"),
+        ]
+        for (i, (tag, kind, mfg, model, amps, volts, kva)) in stranded.enumerated() {
+            let e = Equipment(tag: tag, kind: kind, manufacturer: mfg, model: model, serial: "\(mfg.prefix(2).uppercased())-77\(i)41",
+                              voltage: volts, amperage: amps, phase: "3", kva: kva, manufactureYear: 2025,
+                              location: "Electrical Yard A", hasArcFlashLabel: true, status: .confirmed, capturedAt: ago(hours: 120 + Double(i) * 6))
+            context.insert(e); e.site = culpeper
+        }
+
         try? context.save()
     }
 }

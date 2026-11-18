@@ -20,26 +20,23 @@ struct SitesListView: View {
 
     var body: some View {
         List {
-            ForEach(filtered) { site in
-                NavigationLink(value: site) {
-                    HStack(spacing: 12) {
-                        DisciplineThumbnail(site: site)
-                            .frame(width: 52, height: 52)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(site.name).font(.headline)
-                            Text([site.client, site.address].filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.caption).foregroundStyle(.secondary)
-                            LinearProgress(value: site.progress, color: site.discipline.color, height: 4)
-                        }
-                        Text(Units.percent(site.progress)).font(.subheadline.bold()).monospacedDigit()
-                    }
-                    .padding(.vertical, 4)
-                }
+            let active = filtered.filter { !$0.isCancelled }
+            let cancelled = filtered.filter(\.isCancelled)
+            Section {
+                ForEach(active) { row($0) }
+                    .onDelete { delete(active, $0) }
+            } header: {
+                if !cancelled.isEmpty { Text("Active") }
             }
-            .onDelete { offsets in
-                for i in offsets { context.delete(filtered[i]) }
-                try? context.save()
+            if !cancelled.isEmpty {
+                Section {
+                    ForEach(cancelled) { row($0) }
+                        .onDelete { delete(cancelled, $0) }
+                } header: {
+                    Text("Cancelled · Stranded Assets")
+                } footer: {
+                    Text("Projects cancelled before completion. Captured equipment stays on record for valuation or redeployment.")
+                }
             }
         }
         .overlay {
@@ -63,6 +60,37 @@ struct SitesListView: View {
             }
         }
         .sheet(isPresented: $showNewSite) { SiteEditorView() }
+    }
+
+    private func row(_ site: Site) -> some View {
+        NavigationLink(value: site) {
+            HStack(spacing: 12) {
+                DisciplineThumbnail(site: site)
+                    .frame(width: 52, height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .saturation(site.isCancelled ? 0 : 1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(site.name).font(.headline)
+                    Text([site.client, site.address].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(.secondary)
+                    if site.isCancelled {
+                        Text("\(site.cancelReason?.short ?? "Cancelled") · \(site.strandedEquipment.count) stranded")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        LinearProgress(value: site.progress, color: site.discipline.color, height: 4)
+                    }
+                }
+                if !site.isCancelled {
+                    Text(Units.percent(site.progress)).font(.subheadline.bold()).monospacedDigit()
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private func delete(_ list: [Site], _ offsets: IndexSet) {
+        for i in offsets { context.delete(list[i]) }
+        try? context.save()
     }
 }
 
