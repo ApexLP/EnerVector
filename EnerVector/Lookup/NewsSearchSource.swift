@@ -17,10 +17,13 @@ struct NewsSearchSource {
     }
 
     enum SearchError: LocalizedError {
-        case server(Int), incomplete, refused, noResult
+        case server(Int, String?), incomplete, refused, noResult
         var errorDescription: String? {
             switch self {
-            case .server(let code): "The search service returned an error (\(code)). Check the endpoint and key in Settings."
+            case .server(_, "Invalid app key"): "The app key doesn't match. Re-enter it in Settings › Data Center News Search."
+            case .server(_, "Invalid state"): "That state name wasn't accepted. Pick a state from the list."
+            case .server(_, "Claude request failed"): "The search service couldn't reach Claude. Check the Claude API key and credits."
+            case .server(let code, let message): "The search service returned an error (\(code)\(message.map { ": \($0)" } ?? "")). Check the endpoint and key in Settings."
             case .incomplete: "The search ran out of time before finishing. Try again."
             case .refused: "The search was declined. Try a different state."
             case .noResult: "The search finished without returning a list. Try again."
@@ -76,7 +79,10 @@ struct NewsSearchSource {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else { throw SearchError.server(status) }
+        guard status == 200 else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+            throw SearchError.server(status, message)
+        }
 
         let message = try JSONDecoder().decode(MessageResponse.self, from: data)
         if message.stop_reason == "refusal" { throw SearchError.refused }
