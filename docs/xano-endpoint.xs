@@ -1,0 +1,106 @@
+query cancelled_datacenters verb=POST {
+  api_group = "enervector"
+
+  input {
+    text state? filters=trim
+    text app_key? filters=trim
+  }
+
+  stack {
+    precondition ($input.app_key == $env.ENERVECTOR_APP_KEY) {
+      error = "Invalid app key"
+    }
+
+    precondition ("/^[A-Za-z .]{1,30}$/"|regex_matches:$input.state) {
+      error = "Invalid state"
+    }
+
+    var $template {
+      value = """
+        {
+          "model": "claude-opus-5-5",
+          "max_tokens": 16000,
+          "output_config": { "effort": "medium" },
+          "fallbacks": "default",
+          "system": "You research cancelled data center projects in the United States for field technicians who survey stranded electrical equipment. Use web search to find data center projects in the requested state that were cancelled, withdrawn, paused indefinitely, or denied (for example a rezoning or permit denied, a utility unable to supply power, or a developer pulling out) in roughly the last three years. Prefer local news, utility and county records, and trade press. Include only projects you found in a source during this search; never fill in from memory. Use null for anything the source does not state - do not estimate megawatts or dates. Give each project one entry, citing the most specific source URL you read. When you are done searching, call report_cancelled_projects once with everything you found, or with an empty list if you found nothing.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "State: {{STATE}}. Find cancelled, withdrawn, paused or denied data center projects in this state and report them."
+            }
+          ],
+          "tools": [
+            {
+              "type": "web_search_20260209",
+              "name": "web_search",
+              "max_uses": 6,
+              "user_location": { "type": "approximate", "country": "US" }
+            },
+            {
+              "name": "report_cancelled_projects",
+              "description": "Report the cancelled data center projects found in this search. Call exactly once, at the end.",
+              "strict": true,
+              "input_schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["projects"],
+                "properties": {
+                  "projects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["name", "developer", "county", "state", "megawatts", "status", "date", "reason", "summary", "source_url", "source_title"],
+                      "properties": {
+                        "name": { "type": "string", "description": "Project or campus name as reported." },
+                        "developer": { "anyOf": [{ "type": "string" }, { "type": "null" }], "description": "Developer, owner or end user, if reported." },
+                        "county": { "anyOf": [{ "type": "string" }, { "type": "null" }], "description": "County or city, if reported." },
+                        "state": { "type": "string", "description": "Two-letter state code." },
+                        "megawatts": { "anyOf": [{ "type": "number" }, { "type": "null" }], "description": "Planned power capacity in MW, only if the source states it." },
+                        "status": { "type": "string", "enum": ["cancelled", "withdrawn", "paused", "denied"] },
+                        "date": { "anyOf": [{ "type": "string" }, { "type": "null" }], "description": "When it was cancelled, withdrawn, paused or denied, as YYYY-MM-DD, YYYY-MM or YYYY." },
+                        "reason": { "anyOf": [{ "type": "string" }, { "type": "null" }], "description": "Stated reason, in a few words." },
+                        "summary": { "type": "string", "description": "One or two sentences on what happened." },
+                        "source_url": { "type": "string", "description": "URL of the source read during this search." },
+                        "source_title": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+        """
+    }
+
+    // Replace state placeholder in template and parse to JSON object
+    var $body {
+      value = $template
+        |replace:"{{STATE}}":$input.state
+        |json_decode
+    }
+
+    // Call Anthropic API to research cancelled data centers
+    api.request {
+      url = "https://api.anthropic.com/v1/messages"
+      method = "POST"
+      params = $body
+      headers = [
+        "content-type: application/json"
+        "x-api-key: " ~ $env.ANTHROPIC_API_KEY
+        "anthropic-version: 2026-10-21"
+        "anthropic-beta: server-side-fallback-2026-07-01"
+      ]
+
+      timeout = 240
+    } as $api_request
+
+    // Precondition that Claude request succeeded with status 200
+    precondition ($api_request.response.status == 200) {
+      error = "Claude request failed"
+    }
+  }
+
+  response = $api_request.response.result
+}
