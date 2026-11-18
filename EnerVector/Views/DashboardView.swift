@@ -9,6 +9,7 @@ struct DashboardView: View {
     @Query private var roofs: [RoofSurvey]
     @AppStorage(AppSettings.technicianName) private var technician = ""
     @State private var showNewSite = false
+    @State private var showLookup = false
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     private var greeting: String {
@@ -70,6 +71,7 @@ struct DashboardView: View {
             Button { showNewSite = true } label: { Label("New Site", systemImage: "plus") }
         }
         .sheet(isPresented: $showNewSite) { SiteEditorView() }
+        .sheet(isPresented: $showLookup) { CancelledLookupView() }
     }
 
     private var siteGrid: some View {
@@ -97,7 +99,9 @@ struct DashboardView: View {
 
     private var strandedSection: some View {
         Card {
-            CardHeader("Cancelled · Stranded Assets")
+            CardHeader(title: "Cancelled · Stranded Assets") {
+                Button("Find more") { showLookup = true }.font(.subheadline)
+            }
             let gear = cancelled.reduce(0) { $0 + $1.strandedEquipment.count }
             let kva = cancelled.reduce(0) { $0 + $1.strandedKVA }
             Text("\(cancelled.count) cancelled \(cancelled.count == 1 ? "project" : "projects") · \(gear) pieces of stranded equipment"

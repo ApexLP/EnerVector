@@ -131,6 +131,7 @@ enum CancelReason: String, CaseIterable, Identifiable, Codable {
     case energizationDelay = "Power not available by energization date"
     case permitting = "Permitting / zoning"
     case demand = "Financing / demand pulled"
+    case queueWithdrawal = "Withdrawn from interconnection queue"
     case other = "Other"
 
     var id: String { rawValue }
@@ -141,6 +142,7 @@ enum CancelReason: String, CaseIterable, Identifiable, Codable {
         case .energizationDelay: "Power delay"
         case .permitting: "Permitting"
         case .demand: "Financing / demand"
+        case .queueWithdrawal: "Queue withdrawal"
         case .other: "Other"
         }
     }
@@ -181,6 +183,8 @@ final class Site {
     var cancelledAt: Date?
     var cancelReasonRaw: String?
     var cancelNotes: String = ""
+    /// Source record for sites imported from a public project lookup, e.g. "MISO:J1234".
+    var externalRef: String?
     @Attribute(.externalStorage) var coverPhoto: Data?
 
     @Relationship(deleteRule: .cascade, inverse: \Equipment.site) var equipment: [Equipment] = []

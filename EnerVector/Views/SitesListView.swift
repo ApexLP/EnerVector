@@ -8,13 +8,16 @@ struct SitesListView: View {
     @State private var search = ""
     @State private var filter: Discipline?
     @State private var showNewSite = false
+    @State private var showLookup = false
 
     private var filtered: [Site] {
         sites.filter { site in
             (filter == nil || site.discipline == filter)
                 && (search.isEmpty || site.name.localizedCaseInsensitiveContains(search)
                     || site.address.localizedCaseInsensitiveContains(search)
-                    || site.client.localizedCaseInsensitiveContains(search))
+                    || site.client.localizedCaseInsensitiveContains(search)
+                    || site.cancelNotes.localizedCaseInsensitiveContains(search)
+                    || (site.cancelReason?.rawValue.localizedCaseInsensitiveContains(search) ?? false))
         }
     }
 
@@ -38,6 +41,11 @@ struct SitesListView: View {
                     Text("Projects cancelled before completion. Captured equipment stays on record for valuation or redeployment.")
                 }
             }
+            Section {
+                Button { showLookup = true } label: {
+                    Label("Find cancelled projects in public queues", systemImage: "magnifyingglass")
+                }
+            }
         }
         .overlay {
             if sites.isEmpty {
@@ -53,6 +61,9 @@ struct SitesListView: View {
                 Button { showNewSite = true } label: { Label("New Site", systemImage: "plus") }
             }
             ToolbarItem(placement: .secondaryAction) {
+                Button { showLookup = true } label: { Label("Find Cancelled Projects", systemImage: "magnifyingglass") }
+            }
+            ToolbarItem(placement: .secondaryAction) {
                 Picker("Discipline", selection: $filter) {
                     Text("All disciplines").tag(Discipline?.none)
                     ForEach(Discipline.allCases) { Text($0.rawValue).tag(Discipline?.some($0)) }
@@ -60,6 +71,7 @@ struct SitesListView: View {
             }
         }
         .sheet(isPresented: $showNewSite) { SiteEditorView() }
+        .sheet(isPresented: $showLookup) { CancelledLookupView() }
     }
 
     private func row(_ site: Site) -> some View {
