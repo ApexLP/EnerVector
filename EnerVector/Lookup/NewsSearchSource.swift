@@ -27,10 +27,21 @@ struct NewsSearchSource {
 
     // The Claude Messages API response, passed through unchanged by Xano.
     private struct MessageResponse: Decodable {
+        /// Only the report tool's input is decoded; web search and other blocks carry differently shaped inputs.
         struct Block: Decodable {
             let type: String
             let name: String?
             let input: Report?
+
+            private enum CodingKeys: String, CodingKey { case type, name, input }
+
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                type = try c.decode(String.self, forKey: .type)
+                name = try c.decodeIfPresent(String.self, forKey: .name)
+                input = (type == "tool_use" && name == "report_cancelled_projects")
+                    ? try c.decodeIfPresent(Report.self, forKey: .input) : nil
+            }
         }
         let content: [Block]
         let stop_reason: String?
