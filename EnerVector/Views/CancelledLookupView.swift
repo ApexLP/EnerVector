@@ -197,7 +197,7 @@ private struct ProjectRow: View {
             Text([project.location, project.transmissionOwner].filter { !$0.isEmpty }.joined(separator: " · "))
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             if let withdrawn = project.withdrawnDate {
-                Text("Withdrawn \(withdrawn.formatted(date: .abbreviated, time: .omitted))")
+                Text("\(project.status?.capitalized ?? "Withdrawn") \(withdrawn.formatted(date: .abbreviated, time: .omitted))")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

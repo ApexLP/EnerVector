@@ -30,7 +30,7 @@ struct CancelledProject: Identifiable, Hashable, Codable {
     var fuelLabel: String { fuelType.isEmpty ? "Unspecified" : fuelType }
 
     var location: String {
-        let suffixed = ["County", "Parish", "Borough"].contains { county.hasSuffix($0) }
+        let suffixed = ["County", "Parish", "Borough", "City", "city"].contains { county.contains($0) }
         let countyName = county.isEmpty ? nil : suffixed ? county : "\(county) County"
         return [countyName, state.isEmpty ? nil : state].compactMap { $0 }.joined(separator: ", ")
     }
