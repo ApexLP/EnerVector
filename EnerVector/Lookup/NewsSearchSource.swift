@@ -8,9 +8,12 @@ struct NewsSearchSource {
 
     static var configured: NewsSearchSource? {
         let defaults = UserDefaults.standard
-        guard let raw = defaults.string(forKey: AppSettings.newsSearchURL)?.trimmingCharacters(in: .whitespaces),
-              let url = URL(string: raw), url.scheme == "https" else { return nil }
-        return NewsSearchSource(endpoint: url, appKey: defaults.string(forKey: AppSettings.newsSearchKey) ?? "")
+        guard var raw = defaults.string(forKey: AppSettings.newsSearchURL)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else { return nil }
+        if !raw.lowercased().hasPrefix("http") { raw = "https://" + raw }
+        guard let url = URL(string: raw), url.scheme == "https", url.host() != nil else { return nil }
+        let key = (defaults.string(forKey: AppSettings.newsSearchKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return NewsSearchSource(endpoint: url, appKey: key)
     }
 
     enum SearchError: LocalizedError {
