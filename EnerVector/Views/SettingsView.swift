@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage(AppSettings.specificYield) private var specificYield = 1250.0
     @AppStorage(AppSettings.kwPerTon) private var kwPerTon = 1.2
     @AppStorage(AppSettings.wattsPerSqFt) private var wattsPerSqFt = 3.0
+    @AppStorage(AppSettings.newsSearchURL) private var newsURL = ""
+    @AppStorage(AppSettings.newsSearchKey) private var newsKey = ""
     @Query private var sites: [Site]
     @State private var confirmRemove = false
 
@@ -42,6 +44,16 @@ struct SettingsView: View {
                 Text("Planning-level assumptions used for the connected-load estimate on energy audits.")
             }
 
+            Section {
+                TextField("Endpoint URL (https://…)", text: $newsURL)
+                    .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                SecureField("App key", text: $newsKey)
+            } header: {
+                Text("Data Center News Search")
+            } footer: {
+                Text("The Xano endpoint that runs the Claude news search for cancelled data centers. Only the state you pick is sent.")
+            }
+
             Section("Device capabilities") {
                 capability("LiDAR room scanning (RoomPlan)", RoomScanner.isSupported)
                 capability("AR measuring (ARKit)", ARMeasure.isSupported)
@@ -56,7 +68,7 @@ struct SettingsView: View {
                     Button("Load sample data") { SampleData.insert(into: context) }
                 }
             } footer: {
-                Text("All captures are stored on this device. Text recognition and measurements run on-device.")
+                Text("All captures are stored on this device. Text recognition and measurements run on-device. The cancelled-project lookup downloads public queue data and, if set up, sends only the selected state to the news search.")
             }
         }
         .navigationTitle("Settings")

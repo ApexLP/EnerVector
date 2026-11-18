@@ -43,7 +43,7 @@ struct SitesListView: View {
             }
             Section {
                 Button { showLookup = true } label: {
-                    Label("Find cancelled projects in public queues", systemImage: "magnifyingglass")
+                    Label("Find cancelled projects", systemImage: "magnifyingglass")
                 }
             }
         }

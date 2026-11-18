@@ -13,6 +13,15 @@ struct CancelledProject: Identifiable, Hashable, Codable {
     let plannedInService: Date?
     let transmissionOwner: String
     let pointOfInterconnection: String
+    // Filled in for projects found in news coverage rather than a grid queue.
+    var name: String? = nil
+    var status: String? = nil
+    var reason: String? = nil
+    var summary: String? = nil
+    var sourceURL: URL? = nil
+    var sourceTitle: String? = nil
+
+    var isFromNews: Bool { sourceURL != nil }
 
     var id: String { ref }
     /// Stable key stored on an imported Site so the same project isn't added twice.
@@ -27,6 +36,7 @@ struct CancelledProject: Identifiable, Hashable, Codable {
     }
 
     var title: String {
+        if let name, !name.isEmpty { return megawatts > 0 ? "\(name) · \(Units.number(megawatts)) MW" : name }
         let mw = megawatts > 0 ? "\(Units.number(megawatts)) MW " : ""
         return "\(source) \(projectNumber) · \(mw)\(fuelLabel)"
     }

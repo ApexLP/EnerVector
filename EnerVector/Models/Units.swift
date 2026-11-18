@@ -33,6 +33,8 @@ enum AppSettings {
     static let kwPerTon = "kwPerTon"
     static let wattsPerSqFt = "wattsPerSqFt"
     static let didSeed = "didSeedSampleData"
+    static let newsSearchURL = "newsSearchURL"
+    static let newsSearchKey = "newsSearchKey"
 }
 
 extension Date {

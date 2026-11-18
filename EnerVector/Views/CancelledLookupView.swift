@@ -11,6 +11,13 @@ struct CancelledLookupView: View {
     @State private var fuel = ""
     @State private var minMW: Double = 0
     @State private var sortByMW = false
+    @State private var mode = Mode.queues
+    @State private var newsState = "VA"
+    @State private var newsResults: [String: [CancelledProject]] = [:]
+    @State private var newsLoading = false
+    @State private var newsError: String?
+
+    enum Mode: String, CaseIterable { case queues = "Grid queues", news = "Data centers (news)" }
 
     private var states: [String] { Array(Set(store.projects.map(\.state).filter { !$0.isEmpty })).sorted() }
     private var fuels: [String] { Array(Set(store.projects.map(\.fuelLabel))).sorted() }
@@ -31,22 +38,19 @@ struct CancelledLookupView: View {
         NavigationStack {
             List {
                 Section {
-                    filters
-                } footer: {
-                    Text(summary)
-                }
-                Section {
-                    ForEach(results.prefix(300)) { project in
-                        NavigationLink(value: project) {
-                            ProjectRow(project: project, imported: importedRefs.contains(project.ref))
-                        }
+                    Picker("Source", selection: $mode) {
+                        ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                     }
-                } footer: {
-                    if results.count > 300 { Text("Showing the first 300 of \(results.count). Narrow the filters to see more.") }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
+                if mode == .queues { queueSections } else { newsSections }
             }
             .overlay {
-                if store.projects.isEmpty && store.isLoading {
+                if mode == .news {
+                    EmptyView()
+                } else if store.projects.isEmpty && store.isLoading {
                     ProgressView("Loading withdrawn projects…")
                 } else if store.projects.isEmpty, let error = store.error {
                     ContentUnavailableView {
@@ -68,6 +72,79 @@ struct CancelledLookupView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
             }
             .task { await store.load() }
+        }
+    }
+
+    @ViewBuilder private var queueSections: some View {
+        Section {
+            filters
+        } footer: {
+            Text(summary)
+        }
+        Section {
+            ForEach(results.prefix(300)) { project in
+                NavigationLink(value: project) {
+                    ProjectRow(project: project, imported: importedRefs.contains(project.ref))
+                }
+            }
+        } footer: {
+            if results.count > 300 { Text("Showing the first 300 of \(results.count). Narrow the filters to see more.") }
+        }
+    }
+
+    @ViewBuilder private var newsSections: some View {
+        if let source = NewsSearchSource.configured {
+            Section {
+                Picker("State", selection: $newsState) {
+                    ForEach(USStates.all, id: \.code) { Text($0.name).tag($0.code) }
+                }
+                Button {
+                    Task { await runNewsSearch(source) }
+                } label: {
+                    HStack {
+                        Label(newsResults[newsState] == nil ? "Search news" : "Search again", systemImage: "sparkle.magnifyingglass")
+                        if newsLoading { Spacer(); ProgressView() }
+                    }
+                }
+                .disabled(newsLoading)
+            } footer: {
+                Text(newsLoading ? "Searching recent news and public records — this can take a minute or two."
+                     : "Claude searches the web for data center projects in this state that were cancelled, withdrawn, paused or denied. Results are AI-gathered from news coverage — open the source to verify before relying on them.")
+            }
+            if let newsError {
+                Section { Label(newsError, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
+            }
+            if let found = newsResults[newsState] {
+                Section {
+                    if found.isEmpty {
+                        Text("No cancelled data center projects found for this state.").foregroundStyle(.secondary)
+                    }
+                    ForEach(found) { project in
+                        NavigationLink(value: project) {
+                            ProjectRow(project: project, imported: importedRefs.contains(project.ref))
+                        }
+                    }
+                } header: {
+                    Text("\(found.count) found")
+                }
+            }
+        } else {
+            Section {
+                Label("News search isn't set up yet", systemImage: "gearshape")
+            } footer: {
+                Text("Add the search endpoint and app key in Settings › Data Center News Search.")
+            }
+        }
+    }
+
+    private func runNewsSearch(_ source: NewsSearchSource) async {
+        newsLoading = true
+        newsError = nil
+        defer { newsLoading = false }
+        do {
+            newsResults[newsState] = try await source.search(state: USStates.all.first { $0.code == newsState }?.name ?? newsState)
+        } catch {
+            newsError = (error as? LocalizedError)?.errorDescription ?? "The search couldn't be completed. Check your connection and try again."
         }
     }
 
@@ -142,15 +219,27 @@ struct CancelledProjectDetail: View {
                 KeyValueRow(key: "Location", value: project.location.isEmpty ? "—" : project.location)
                 KeyValueRow(key: "Capacity", value: project.megawatts > 0 ? "\(Units.number(project.megawatts)) MW" : "—")
                 KeyValueRow(key: "Type", value: project.fuelLabel)
-                KeyValueRow(key: "Utility / TO", value: project.transmissionOwner.isEmpty ? "—" : project.transmissionOwner)
+                KeyValueRow(key: project.isFromNews ? "Developer" : "Utility / TO", value: project.transmissionOwner.isEmpty ? "—" : project.transmissionOwner)
                 if !project.pointOfInterconnection.isEmpty {
                     KeyValueRow(key: "Point of interconnection", value: project.pointOfInterconnection)
+                }
+            }
+            if project.isFromNews {
+                Section("From the news") {
+                    if let status = project.status { KeyValueRow(key: "Status", value: status.capitalized) }
+                    if let reason = project.reason, !reason.isEmpty { KeyValueRow(key: "Reason", value: reason) }
+                    if let summary = project.summary { Text(summary).font(.subheadline) }
+                    if let url = project.sourceURL {
+                        Link(destination: url) {
+                            Label(project.sourceTitle ?? url.host() ?? "Source", systemImage: "safari")
+                        }
+                    }
                 }
             }
             Section("Timeline") {
                 KeyValueRow(key: "Entered queue", value: Self.day(project.queueDate))
                 KeyValueRow(key: "Planned in-service", value: Self.day(project.plannedInService))
-                KeyValueRow(key: "Withdrawn", value: Self.day(project.withdrawnDate))
+                KeyValueRow(key: project.isFromNews ? "Cancelled / reported" : "Withdrawn", value: Self.day(project.withdrawnDate))
             }
             Section {
                 if let existing {
@@ -159,7 +248,9 @@ struct CancelledProjectDetail: View {
                     Button { add() } label: { Label("Add as Cancelled Site", systemImage: "plus.circle.fill") }
                 }
             } footer: {
-                Text("Creates a site under Cancelled · Stranded Assets so you can survey and document any equipment left on site. Queue data shows the project was withdrawn, not what was built.")
+                Text(project.isFromNews
+                     ? "Creates a site under Cancelled · Stranded Assets with the news source in its notes. Verify the details against the source before surveying."
+                     : "Creates a site under Cancelled · Stranded Assets so you can survey and document any equipment left on site. Queue data shows the project was withdrawn, not what was built.")
             }
         }
         .navigationTitle(project.projectNumber)
@@ -169,21 +260,45 @@ struct CancelledProjectDetail: View {
     private static func day(_ date: Date?) -> String { date?.formatted(date: .abbreviated, time: .omitted) ?? "—" }
 
     private func add() {
-        let discipline: Discipline = project.fuelType == "Solar" ? .solarSurvey : .electrical
-        let mw = project.megawatts > 0 ? "\(Units.number(project.megawatts)) MW " : ""
-        let site = Site(name: "\(project.source) \(project.projectNumber) — \(mw)\(project.fuelLabel)",
+        let site: Site
+        if project.isFromNews {
+            site = Site(name: project.name ?? project.title, client: project.transmissionOwner, address: project.location,
+                        discipline: .dataCenter, notes: "Found in news coverage: \(project.sourceURL?.absoluteString ?? "")")
+            context.insert(site)
+            site.cancelReason = Self.reason(for: project)
+            site.cancelNotes = [
+                project.megawatts > 0 ? "\(Units.number(project.megawatts)) MW planned." : nil,
+                project.status.map { "Status: \($0)." },
+                project.reason.flatMap { $0.isEmpty ? nil : "Reason: \($0)." },
+                project.summary,
+                project.sourceURL.map { "Source: \($0.absoluteString)" },
+            ].compactMap { $0 }.joined(separator: " ")
+        } else {
+            let discipline: Discipline = project.fuelType == "Solar" ? .solarSurvey : .electrical
+            let mw = project.megawatts > 0 ? "\(Units.number(project.megawatts)) MW " : ""
+            site = Site(name: "\(project.source) \(project.projectNumber) — \(mw)\(project.fuelLabel)",
                         client: project.transmissionOwner, address: project.location, discipline: discipline,
                         notes: "Imported from the \(project.source) interconnection queue.")
-        context.insert(site)
+            context.insert(site)
+            site.cancelReason = .queueWithdrawal
+            site.cancelNotes = [
+                "Withdrawn from the \(project.source) queue as project \(project.projectNumber).",
+                project.queueDate.map { "Entered queue \(Self.day($0))." },
+                project.plannedInService.map { "Planned in-service \(Self.day($0))." },
+                project.pointOfInterconnection.isEmpty ? nil : "POI: \(project.pointOfInterconnection).",
+            ].compactMap { $0 }.joined(separator: " ")
+        }
         site.externalRef = project.ref
         site.cancelledAt = project.withdrawnDate ?? .now
-        site.cancelReason = .queueWithdrawal
-        site.cancelNotes = [
-            "Withdrawn from the \(project.source) queue as project \(project.projectNumber).",
-            project.queueDate.map { "Entered queue \(Self.day($0))." },
-            project.plannedInService.map { "Planned in-service \(Self.day($0))." },
-            project.pointOfInterconnection.isEmpty ? nil : "POI: \(project.pointOfInterconnection).",
-        ].compactMap { $0 }.joined(separator: " ")
         try? context.save()
+    }
+
+    /// Best-effort mapping of the reported reason onto the app's cancellation reasons.
+    private static func reason(for project: CancelledProject) -> CancelReason {
+        let text = "\(project.reason ?? "") \(project.status ?? "")".lowercased()
+        if ["power", "grid", "interconnect", "utility", "transmission", "capacity"].contains(where: text.contains) { return .noInterconnection }
+        if ["zoning", "rezon", "permit", "denied", "board", "county"].contains(where: text.contains) { return .permitting }
+        if ["financ", "demand", "tenant", "funding", "market"].contains(where: text.contains) { return .demand }
+        return .other
     }
 }
