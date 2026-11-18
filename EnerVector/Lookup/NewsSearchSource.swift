@@ -58,7 +58,7 @@ struct NewsSearchSource {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(appKey, forHTTPHeaderField: "X-App-Key")
-        request.httpBody = try JSONEncoder().encode(["state": state])
+        request.httpBody = try JSONEncoder().encode(["state": state, "app_key": appKey])
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0

@@ -66,14 +66,14 @@ keep the spend limit from Step 1.
 
 ### 3b. Input
 
-In the **Inputs** panel, add one input: type **text**, name **`state`**, required.
+In the **Inputs** panel, add two required **text** inputs: **`state`** and **`app_key`**.
+(The app sends the app key in the request body as `app_key`, and also as an `X-App-Key` header.)
 
 ### 3c. Function stack — add these in order
 
 **1. Check the app key** — *Utility Functions › Precondition*
-- Condition: `$env.$http_headers|get:"x-app-key"` **equals** `$env.ENERVECTOR_APP_KEY`
-  (if Xano keeps the header's original capitalization, use `"X-App-Key"` instead)
-- Error type: **Access Denied** · Message: `Invalid app key`
+- Condition (Add condition): left **INPUT › `app_key`**, operator **`==`**, right **ENV › `ENERVECTOR_APP_KEY`**
+- Error message: `Invalid app key` · Error type: **Access Denied** (if offered)
 
 **2. Check the state** — *Utility Functions › Precondition*
 - Condition: `$input.state|strlen` **is less than or equal to** `30`
@@ -131,7 +131,7 @@ At the top of the API group, Xano shows the **base URL**, like
 Replace the URL and app key with yours:
 
 ```bash
-curl -s -X POST "https://YOUR-XANO-BASE-URL/cancelled_datacenters" -H "Content-Type: application/json" -H "X-App-Key: YOUR_APP_KEY" -d '{"state":"Virginia"}' | python3 -m json.tool | head -80
+curl -s -X POST "https://YOUR-XANO-BASE-URL/cancelled_datacenters" -H "Content-Type: application/json" -d '{"state":"Virginia","app_key":"YOUR_APP_KEY"}' | python3 -m json.tool | head -80
 ```
 
 It takes 30–120 seconds. A good response includes `"stop_reason": "tool_use"` and a block with
@@ -139,7 +139,7 @@ It takes 30–120 seconds. A good response includes `"stop_reason": "tool_use"` 
 
 | What you see | Cause | Fix |
 |---|---|---|
-| `Invalid app key` | Header name or value doesn't match | Check the key; try the other header capitalization in precondition 1 |
+| `Invalid app key` | `app_key` doesn't match | Check `app_key` in the request matches `ENERVECTOR_APP_KEY` exactly |
 | `Invalid state` | State has odd characters | Send a plain state name, e.g. `Virginia` |
 | `Claude request failed` + `authentication_error` | Wrong Claude key | Re-paste `ANTHROPIC_API_KEY` in Xano |
 | `credit balance is too low` | No credits | Add credits in Step 1 |
