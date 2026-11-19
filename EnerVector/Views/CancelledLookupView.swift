@@ -16,6 +16,8 @@ struct CancelledLookupView: View {
     @State private var newsResults: [String: [CancelledProject]] = [:]
     @State private var newsLoading = false
     @State private var newsError: String?
+    @State private var newsWindow = NewsWindow.months12
+    @State private var flags = ArticleFlags.shared
 
     enum Mode: String, CaseIterable { case queues = "Grid queues", news = "Data centers (news)" }
 
@@ -99,6 +101,9 @@ struct CancelledLookupView: View {
                 Picker("State", selection: $newsState) {
                     ForEach(USStates.all, id: \.code) { Text($0.name).tag($0.code) }
                 }
+                Picker("Time frame", selection: $newsWindow) {
+                    ForEach(NewsWindow.allCases) { Text($0.label).tag($0) }
+                }
                 Button {
                     Task { await runNewsSearch(source) }
                 } label: {
@@ -110,7 +115,7 @@ struct CancelledLookupView: View {
                 .disabled(newsLoading)
             } footer: {
                 Text(newsLoading ? "Searching recent news and public records — this can take a minute or two."
-                     : "Claude searches the web for data center projects in this state that were cancelled, withdrawn, paused or denied. Results are AI-gathered from news coverage — open the source to verify before relying on them.")
+                     : "Claude searches the web for data center projects in this state that were cancelled, withdrawn, paused or denied in the chosen time frame. Flag any article that's wrong. Results are AI-gathered from news coverage — open the source to verify before relying on them.")
             }
             if let newsError {
                 Section { Label(newsError, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
@@ -120,13 +125,16 @@ struct CancelledLookupView: View {
                     if found.isEmpty {
                         Text("No cancelled data center projects found for this state.").foregroundStyle(.secondary)
                     }
-                    ForEach(found) { project in
+                    // Flagged articles sink to the bottom.
+                    ForEach(found.sorted { (flags.reason(for: $0.sourceURL) == nil) && (flags.reason(for: $1.sourceURL) != nil) }) { project in
                         NavigationLink(value: project) {
-                            ProjectRow(project: project, imported: importedRefs.contains(project.ref))
+                            ProjectRow(project: project, imported: importedRefs.contains(project.ref),
+                                       flag: flags.reason(for: project.sourceURL))
                         }
                     }
                 } header: {
-                    Text("\(found.count) found")
+                    let flagged = found.filter { flags.reason(for: $0.sourceURL) != nil }.count
+                    Text("\(found.count) found" + (flagged > 0 ? " · \(flagged) flagged" : ""))
                 }
             }
         } else {
@@ -143,7 +151,8 @@ struct CancelledLookupView: View {
         newsError = nil
         defer { newsLoading = false }
         do {
-            newsResults[newsState] = try await source.search(state: USStates.all.first { $0.code == newsState }?.name ?? newsState)
+            newsResults[newsState] = try await source.search(state: USStates.all.first { $0.code == newsState }?.name ?? newsState,
+                                                              since: newsWindow.since)
         } catch {
             newsError = (error as? LocalizedError)?.errorDescription ?? "The search couldn't be completed. Check your connection and try again."
         }
@@ -187,13 +196,18 @@ struct CancelledLookupView: View {
 private struct ProjectRow: View {
     let project: CancelledProject
     let imported: Bool
+    var flag: ArticleFlags.Reason? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack {
                 Text(project.title).font(.subheadline.weight(.semibold))
                 Spacer()
+                if let flag { Image(systemName: "flag.fill").foregroundStyle(.orange).accessibilityLabel("Flagged: \(flag.rawValue)") }
                 if imported { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("Added") }
+            }
+            if let flag {
+                Text("Flagged: \(flag.rawValue)").font(.caption).foregroundStyle(.orange)
             }
             Text([project.location, project.transmissionOwner].filter { !$0.isEmpty }.joined(separator: " · "))
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -203,12 +217,15 @@ private struct ProjectRow: View {
             }
         }
         .padding(.vertical, 2)
+        .opacity(flag == nil ? 1 : 0.6)
     }
 }
 
 struct CancelledProjectDetail: View {
     @Environment(\.modelContext) private var context
     @Query private var sites: [Site]
+    @State private var flags = ArticleFlags.shared
+    @State private var choosingFlag = false
     let project: CancelledProject
 
     private var existing: Site? { sites.first { $0.externalRef == project.ref } }
@@ -233,6 +250,24 @@ struct CancelledProjectDetail: View {
                     if let url = project.sourceURL {
                         Link(destination: url) {
                             Label(project.sourceTitle ?? url.host() ?? "Source", systemImage: "safari")
+                        }
+                    }
+                }
+                if let url = project.sourceURL {
+                    Section {
+                        if let reason = flags.reason(for: url) {
+                            Label("Flagged: \(reason.rawValue)", systemImage: "flag.fill").foregroundStyle(.orange)
+                            Button("Remove flag") { flags.unflag(url) }
+                        } else {
+                            Button { choosingFlag = true } label: { Label("Flag this article", systemImage: "flag") }
+                                .tint(.orange)
+                        }
+                    } footer: {
+                        Text("Flags are saved on this device and stay with the article in future searches.")
+                    }
+                    .confirmationDialog("What's wrong with this article?", isPresented: $choosingFlag, titleVisibility: .visible) {
+                        ForEach(ArticleFlags.Reason.allCases) { reason in
+                            Button(reason.rawValue) { flags.flag(url, reason) }
                         }
                     }
                 }

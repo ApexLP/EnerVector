@@ -70,12 +70,15 @@ struct NewsSearchSource {
         let projects: [Item]
     }
 
-    func search(state: String) async throws -> [CancelledProject] {
+    func search(state: String, since: Date) async throws -> [CancelledProject] {
         var request = URLRequest(url: endpoint, timeoutInterval: 240)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(appKey, forHTTPHeaderField: "X-App-Key")
-        request.httpBody = try JSONEncoder().encode(["state": state, "app_key": appKey])
+        let day = DateFormatter()
+        day.locale = Locale(identifier: "en_US_POSIX")
+        day.dateFormat = "yyyy-MM-dd"
+        request.httpBody = try JSONEncoder().encode(["state": state, "app_key": appKey, "since": day.string(from: since)])
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -89,8 +92,10 @@ struct NewsSearchSource {
         guard let report = message.content.first(where: { $0.type == "tool_use" && $0.name == "report_cancelled_projects" })?.input else {
             throw message.stop_reason == "pause_turn" ? SearchError.incomplete : SearchError.noResult
         }
+        let cutoff = Calendar.current.dateInterval(of: .month, for: since)?.start ?? since
         return report.projects.compactMap { item in
             guard let url = URL(string: item.source_url), url.scheme?.hasPrefix("http") == true else { return nil }
+            if let date = Self.date(item.date), date < cutoff { return nil }
             return CancelledProject(source: "News", projectNumber: Self.slug(item.name, item.state),
                                     state: item.state, county: item.county ?? "", fuelType: "Data Center",
                                     megawatts: item.megawatts ?? 0, queueDate: nil, withdrawnDate: Self.date(item.date),

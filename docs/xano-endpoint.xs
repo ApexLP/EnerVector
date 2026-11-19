@@ -4,6 +4,7 @@ query cancelled_datacenters verb=POST {
   input {
     text state? filters=trim
     text app_key? filters=trim
+    text since? filters=trim
   }
 
   stack {
@@ -15,6 +16,10 @@ query cancelled_datacenters verb=POST {
       error = "Invalid state"
     }
 
+    precondition ("/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/"|regex_matches:$input.since) {
+      error = "Invalid since date"
+    }
+
     var $template {
       value = """
         {
@@ -22,11 +27,11 @@ query cancelled_datacenters verb=POST {
           "max_tokens": 16000,
           "output_config": { "effort": "medium" },
           "fallbacks": "default",
-          "system": "You research cancelled data center projects in the United States for field technicians who survey stranded electrical equipment. Use web search to find data center projects in the requested state that were cancelled, withdrawn, paused indefinitely, or denied (for example a rezoning or permit denied, a utility unable to supply power, or a developer pulling out) in roughly the last three years. Prefer local news, utility and county records, and trade press. Include only projects you found in a source during this search; never fill in from memory. Use null for anything the source does not state - do not estimate megawatts or dates. Give each project one entry, citing the most specific source URL you read. When you are done searching, call report_cancelled_projects once with everything you found, or with an empty list if you found nothing.",
+          "system": "You research cancelled data center projects in the United States for field technicians who survey stranded electrical equipment. Use web search to find data center projects in the requested state that were cancelled, withdrawn, paused indefinitely, or denied (for example a rezoning or permit denied, a utility unable to supply power, or a developer pulling out) on or after the date given in the request. Leave out projects whose cancellation, withdrawal, pause or denial was before that date. Prefer local news, utility and county records, and trade press. Include only projects you found in a source during this search; never fill in from memory. Use null for anything the source does not state - do not estimate megawatts or dates. Give each project one entry, citing the most specific source URL you read. When you are done searching, call report_cancelled_projects once with everything you found, or with an empty list if you found nothing.",
           "messages": [
             {
               "role": "user",
-              "content": "State: {{STATE}}. Find cancelled, withdrawn, paused or denied data center projects in this state and report them."
+              "content": "State: {{STATE}}. Only include projects cancelled, withdrawn, paused or denied on or after {{SINCE}}. Find them and report them."
             }
           ],
           "tools": [
@@ -78,6 +83,7 @@ query cancelled_datacenters verb=POST {
     var $body {
       value = $template
         |replace:"{{STATE}}":$input.state
+        |replace:"{{SINCE}}":$input.since
         |json_decode
     }
 
