@@ -34,7 +34,7 @@ struct ReportsListView: View {
             if sites.isEmpty { ContentUnavailableView("No sites", systemImage: "doc.richtext", description: Text("Create a site to build a report.")) }
         }
         .navigationTitle("Reports")
-        .sheet(item: $composing) { site in NavigationStack { ReportComposerView(site: site) }.presentationSizing(.page) }
+        .sheet(item: $composing) { site in NavigationStack { ReportComposerView(site: site).keyboardDoneButton() }.presentationSizing(.page) }
     }
 }
 

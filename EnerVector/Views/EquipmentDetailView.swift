@@ -62,6 +62,7 @@ struct EquipmentDetailView: View {
             NavigationStack {
                 ScrollView { Text(equipment.rawText.isEmpty ? "No recognized text." : equipment.rawText).font(.body.monospaced()).padding().textSelection(.enabled) }
                     .navigationTitle("Recognized Text")
+                    .keyboardDoneButton()
                     .toolbar { Button("Done") { showRawText = false } }
             }
         }
@@ -216,6 +217,7 @@ struct EquipmentEditView: View {
                 }
             }
             .navigationTitle("Edit Equipment")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 var d = EquipmentDraft()
@@ -292,6 +294,7 @@ struct ArcFlashLabelCheckView: View {
                 .padding()
             }
             .navigationTitle("Arc Flash Label")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
@@ -369,6 +372,7 @@ struct PanelScheduleCaptureView: View {
                 }
             }
             .navigationTitle("Panel Schedule · \(equipment.displayName)")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { circuits = equipment.circuits }
             .toolbar {

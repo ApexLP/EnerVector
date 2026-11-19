@@ -65,8 +65,8 @@ struct SiteDetailView: View {
             switch sheet {
             case .nameplate: NameplateCaptureView(site: site)
             case .roomScan: RoomScanFlowView(site: site)
-            case .newRoof: NavigationStack { RoofSurveyView(survey: nil, site: site) }
-            case .report: NavigationStack { ReportComposerView(site: site) }.presentationSizing(.page)
+            case .newRoof: NavigationStack { RoofSurveyView(survey: nil, site: site).keyboardDoneButton() }
+            case .report: NavigationStack { ReportComposerView(site: site).keyboardDoneButton() }.presentationSizing(.page)
             case .edit: SiteEditorView(site: site)
             case .addFlag: FlagEditorView(site: site)
             case .cancel: CancelProjectView(site: site)
@@ -365,6 +365,7 @@ struct FlagEditorView: View {
                 TextField("Details", text: $detail, axis: .vertical).lineLimit(3...8)
             }
             .navigationTitle("Add Flag")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { tag = equipmentTag }
             .toolbar {
@@ -453,6 +454,7 @@ struct CancelProjectView: View {
                 }
             }
             .navigationTitle(site.isCancelled ? "Cancellation" : "Cancel Project")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }

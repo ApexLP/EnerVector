@@ -1,3 +1,4 @@
+import UIKit
 import SwiftUI
 
 struct Card<Content: View>: View {
@@ -201,5 +202,42 @@ struct NumberField: View {
 struct ResponsiveColumns {
     static func make(_ sizeClass: UserInterfaceSizeClass?, regular: Int = 4, compact: Int = 2, spacing: CGFloat = 12) -> [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: spacing), count: sizeClass == .compact ? compact : regular)
+    }
+}
+
+
+extension View {
+    /// Lets a downward swipe close the keyboard (number pads have no return key).
+    func keyboardDoneButton() -> some View {
+        scrollDismissesKeyboard(.interactively)
+    }
+}
+
+/// Closes the keyboard when the user taps anywhere outside a text field, app-wide.
+enum KeyboardDismisser {
+    private final class Handler: NSObject, UIGestureRecognizerDelegate {
+        @objc func tapped(_ g: UITapGestureRecognizer) { g.view?.endEditing(true) }
+        func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            var view = touch.view
+            while let v = view {  // Taps inside a text field keep the keyboard up.
+                if v is UITextField || v is UITextView { return false }
+                view = v.superview
+            }
+            return true
+        }
+        func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+    }
+    private static let handler = Handler()
+
+    @MainActor static func install() {
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            for window in scene.windows where !(window.gestureRecognizers ?? []).contains(where: { $0.name == "dismissKeyboard" }) {
+                let tap = UITapGestureRecognizer(target: handler, action: #selector(Handler.tapped))
+                tap.name = "dismissKeyboard"
+                tap.cancelsTouchesInView = false
+                tap.delegate = handler
+                window.addGestureRecognizer(tap)
+            }
+        }
     }
 }

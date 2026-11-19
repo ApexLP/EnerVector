@@ -145,6 +145,7 @@ struct SiteEditorView: View {
                 }
             }
             .navigationTitle(site == nil ? "New Site" : "Edit Site")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

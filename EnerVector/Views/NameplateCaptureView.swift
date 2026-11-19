@@ -47,6 +47,7 @@ struct NameplateCaptureView: View {
                 }
             }
             .navigationTitle("Capture Nameplate")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

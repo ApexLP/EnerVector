@@ -65,6 +65,7 @@ struct CancelledLookupView: View {
             .searchable(text: $search, prompt: "Project #, county, utility, substation")
             .refreshable { await store.load(force: true) }
             .navigationTitle("Cancelled Projects")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: CancelledProject.self) { CancelledProjectDetail(project: $0) }
             .withAppDestinations()

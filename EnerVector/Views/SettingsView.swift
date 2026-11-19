@@ -71,6 +71,7 @@ struct SettingsView: View {
                 Text("All captures are stored on this device. Text recognition and measurements run on-device. The cancelled-project lookup downloads public queue data and, if set up, sends only the selected state to the news search.")
             }
         }
+        .keyboardDoneButton()
         .navigationTitle("Settings")
         .confirmationDialog("Remove the sample sites and all of their captures?", isPresented: $confirmRemove, titleVisibility: .visible) {
             Button("Remove sample data", role: .destructive) { SampleData.removeAll(from: context) }

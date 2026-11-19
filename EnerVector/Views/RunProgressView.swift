@@ -132,6 +132,7 @@ struct RunSegmentEditor: View {
                 Section("Notes") { TextField("Notes", text: $notes, axis: .vertical).lineLimit(2...5) }
             }
             .navigationTitle(segment == nil ? "New Segment" : name)
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 guard let segment else { return }

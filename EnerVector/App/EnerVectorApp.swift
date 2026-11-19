@@ -26,6 +26,7 @@ struct EnerVectorApp: App {
         WindowGroup {
             RootView()
                 .task { SampleData.seedIfNeeded(container.mainContext) }
+                .onAppear { KeyboardDismisser.install() }
         }
         .modelContainer(container)
     }
@@ -41,16 +42,16 @@ struct RootView: View {
     var body: some View {
         TabView(selection: $selection) {
             Tab("Dashboard", systemImage: "square.grid.2x2", value: AppTab.dashboard) {
-                NavigationStack { DashboardView().withAppDestinations() }
+                NavigationStack { DashboardView().withAppDestinations().keyboardDoneButton() }
             }
             Tab("Sites", systemImage: "building.2", value: AppTab.sites) {
-                NavigationStack { SitesListView().withAppDestinations() }
+                NavigationStack { SitesListView().withAppDestinations().keyboardDoneButton() }
             }
             Tab("Captures", systemImage: "camera.viewfinder", value: AppTab.captures) {
-                NavigationStack { CapturesView().withAppDestinations() }
+                NavigationStack { CapturesView().withAppDestinations().keyboardDoneButton() }
             }
             Tab("Reports", systemImage: "doc.richtext", value: AppTab.reports) {
-                NavigationStack { ReportsListView().withAppDestinations() }
+                NavigationStack { ReportsListView().withAppDestinations().keyboardDoneButton() }
             }
             Tab("Settings", systemImage: "gearshape", value: AppTab.settings) {
                 NavigationStack { SettingsView() }

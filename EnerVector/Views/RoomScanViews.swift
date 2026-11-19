@@ -57,6 +57,7 @@ struct RoomScanFlowView: View {
                 Section("Notes") { TextField("Clearances, working space, observations…", text: $notes, axis: .vertical).lineLimit(2...6) }
             }
             .navigationTitle("Room Scan")
+            .keyboardDoneButton()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
